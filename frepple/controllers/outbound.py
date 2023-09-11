@@ -180,10 +180,6 @@ class exporter(object):
             logger.error("==== Exporting manufacturing orders.")
             for i in self.export_manufacturingorders():
                 yield i
-            # _log_logging(self.env, "==== Exporting reordering","frepple", "11")
-            logger.error("==== Exporting reordering rules.")
-            for i in self.export_orderpoints():
-                yield i
             # _log_logging(self.env, "==== Exporting quantities","frepple", "12")
             logger.error("==== Exporting quantities on-hand.")
             for i in self.export_onhand():
@@ -1655,7 +1651,7 @@ class exporter(object):
         recs = m.search(
             [
                 ("state", "in", ["confirmed", "planned", "progress"]),
-                ("origin", "=ilike", "%TRANS%"),
+                # ("origin", "=ilike", "%TRANS%"),
             ]
         )
         fields = [
@@ -1669,9 +1665,11 @@ class exporter(object):
             "location_dest_id",
             "product_id",
             "origin",
+            "priority",
         ]
 
         bom_dict = {int(i.split()[0]): i for i in self.operations}
+        priority_dict = {0: "Not urgent", 1: "Normal", 2: "Urgent", 3: "Very urgent"}
 
         for i in recs.read(fields):
             if i["bom_id"]:
@@ -1680,7 +1678,6 @@ class exporter(object):
                 if location not in [
                     "Rolleston 32",
                     "Spex R24 (Transfer Only)",
-                    "Rolleston 22",
                     "R24 Spex Limited Sales",
                     "R24 Medifab Limited Sales",
                 ]:
@@ -1718,13 +1715,18 @@ class exporter(object):
                     )
                     / factor
                 )
-                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s" batch=%s><operation name=%s/></operationplan>\n' % (
+                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s" batch=%s><operation name=%s/><stringproperty name="priority" value=%s/></operationplan>\n' % (
                     quoteattr(i["name"]),
                     startdate,
                     qty,
                     "confirmed" if i["state"] == "progress" else "approved",
                     quoteattr(origin),
                     quoteattr(operation),
+                    quoteattr(
+                        priority_dict[i["priority"]]
+                        if i["priority"] in priority_dict
+                        else "Normal"
+                    ),
                 )
         yield "</operationplans>\n"
 

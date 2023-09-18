@@ -1595,10 +1595,25 @@ class exporter(object):
         # Get all purchase orders
         m = self.env["purchase.order"]
         ids = [i["order_id"][0] for i in po_line]
-        fields = ["name", "company_id", "partner_id", "state", "date_order"]
+        fields = [
+            "name",
+            "company_id",
+            "partner_id",
+            "state",
+            "date_order",
+            "warehouse_id",
+        ]
         po = {}
         for i in m.browse(ids).read(fields):
             po[i["id"]] = i
+
+        accepted_location = [
+            "R24 Medifab Limited Sales",
+            "Spex R24 (Transfer Only)",
+            "Rolleston 32",
+            "R24 Spex Limited Sales",
+            "Rolleston 32",
+        ]
 
         # Create purchasing operations
         yield "<!-- open purchase orders -->\n"
@@ -1611,7 +1626,10 @@ class exporter(object):
             # if PO status is done, we should ignore this PO line
             if j["state"] == "done":
                 continue
-            location = self.mfg_location
+            location = j["warehouse_id"][1] if j["warehouse_id"] else None
+            if location not in accepted_location:
+                continue
+
             if location and item and i["product_qty"] > i["qty_received"]:
                 start = j["date_order"].strftime("%Y-%m-%dT%H:%M:%S")
                 end = i["date_planned"].strftime("%Y-%m-%dT%H:%M:%S")
@@ -1669,7 +1687,12 @@ class exporter(object):
         ]
 
         bom_dict = {int(i.split()[0]): i for i in self.operations}
-        priority_dict = {0: "Not urgent", 1: "Normal", 2: "Urgent", 3: "Very urgent"}
+        priority_dict = {
+            "0": "Not urgent",
+            "1": "Normal",
+            "2": "Urgent",
+            "3": "Very urgent",
+        }
 
         for i in recs.read(fields):
             if i["bom_id"]:
@@ -1715,12 +1738,13 @@ class exporter(object):
                     )
                     / factor
                 )
-                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s" batch=%s><operation name=%s/><stringproperty name="priority" value=%s/></operationplan>\n' % (
+
+                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s" batch=%s><operation name=%s/><stringproperty name="urgency" value=%s/></operationplan>\n' % (
                     quoteattr(i["name"]),
                     startdate,
                     qty,
                     "confirmed" if i["state"] == "progress" else "approved",
-                    quoteattr(origin),
+                    quoteattr(origin or ""),
                     quoteattr(operation),
                     quoteattr(
                         priority_dict[i["priority"]]

@@ -402,7 +402,7 @@ class importer(object):
                                     break
                     else:
                         # retrieve manufacturing order
-                        mo = mfg_order.search([("id", "=", elem.get("reference"))])
+                        mo = mfg_order.search([("name", "=", elem.get("reference"))])
                         if mo:
                             mo.date_planned_start = elem.get("start")
                             mo.date_planned_finished: elem.get("end")

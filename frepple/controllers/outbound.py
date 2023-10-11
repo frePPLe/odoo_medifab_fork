@@ -16,14 +16,17 @@
 # License along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import logging
-from xml.sax.saxutils import quoteattr
+from xml.sax.saxutils import quoteattr as quoteattr_generic
 from datetime import datetime, timedelta
-from operator import itemgetter
 import pytz
 from pytz import timezone
 import odoo
 
 logger = logging.getLogger(__name__)
+
+
+def quoteattr(str):
+    return quoteattr_generic(str.encode(encoding="UTF-8", errors="ignore"))
 
 
 class Odoo_generator:

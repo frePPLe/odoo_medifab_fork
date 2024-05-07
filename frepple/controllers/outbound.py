@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def quoteattr(str):
-    return quoteattr_generic(str.encode(encoding="UTF-8", errors="ignore"))
+    return quoteattr_generic(str.encode(encoding="UTF-8", errors="ignore").decode())
 
 
 class Odoo_generator:
@@ -387,32 +387,42 @@ class exporter(object):
                     if j.get("week_type", False) == False:
                         # ONE-WEEK CALENDAR
                         yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
-                            self.formatDateTime(j["date_from"], cal_tz[i])
-                            if not j["attendance"]
-                            else (
-                                j["date_from"].strftime("%Y-%m-%dT00:00:00")
-                                if j["date_from"]
-                                else "2020-01-01T00:00:00"
+                            (
+                                self.formatDateTime(j["date_from"], cal_tz[i])
+                                if not j["attendance"]
+                                else (
+                                    j["date_from"].strftime("%Y-%m-%dT00:00:00")
+                                    if j["date_from"]
+                                    else "2020-01-01T00:00:00"
+                                )
                             ),
-                            self.formatDateTime(j["date_to"], cal_tz[i])
-                            if not j["attendance"]
-                            else (
-                                j["date_to"].strftime("%Y-%m-%dT00:00:00")
-                                if j["date_to"]
-                                else "2030-01-01T00:00:00"
+                            (
+                                self.formatDateTime(j["date_to"], cal_tz[i])
+                                if not j["attendance"]
+                                else (
+                                    j["date_to"].strftime("%Y-%m-%dT00:00:00")
+                                    if j["date_to"]
+                                    else "2030-01-01T00:00:00"
+                                )
                             ),
                             "1" if j["attendance"] else "0",
-                            (2 ** ((int(j["dayofweek"]) + 1) % 7))
-                            if "dayofweek" in j
-                            else (2**7) - 1,
+                            (
+                                (2 ** ((int(j["dayofweek"]) + 1) % 7))
+                                if "dayofweek" in j
+                                else (2**7) - 1
+                            ),
                             priority_attendance if j["attendance"] else priority_leave,
                             # In odoo, monday = 0. In frePPLe, sunday = 0.
-                            ("PT%dM" % round(j["hour_from"] * 60))
-                            if "hour_from" in j
-                            else "PT0M",
-                            ("PT%dM" % round(j["hour_to"] * 60))
-                            if "hour_to" in j
-                            else "PT1440M",
+                            (
+                                ("PT%dM" % round(j["hour_from"] * 60))
+                                if "hour_from" in j
+                                else "PT0M"
+                            ),
+                            (
+                                ("PT%dM" % round(j["hour_to"] * 60))
+                                if "hour_to" in j
+                                else "PT1440M"
+                            ),
                         )
                         if j["attendance"]:
                             priority_attendance += 1
@@ -435,17 +445,23 @@ class exporter(object):
                                         cal_tz[i],
                                     ),
                                     "1",
-                                    (2 ** ((int(j["dayofweek"]) + 1) % 7))
-                                    if "dayofweek" in j
-                                    else (2**7) - 1,
+                                    (
+                                        (2 ** ((int(j["dayofweek"]) + 1) % 7))
+                                        if "dayofweek" in j
+                                        else (2**7) - 1
+                                    ),
                                     priority_attendance,
                                     # In odoo, monday = 0. In frePPLe, sunday = 0.
-                                    ("PT%dM" % round(j["hour_from"] * 60))
-                                    if "hour_from" in j
-                                    else "PT0M",
-                                    ("PT%dM" % round(j["hour_to"] * 60))
-                                    if "hour_to" in j
-                                    else "PT1440M",
+                                    (
+                                        ("PT%dM" % round(j["hour_from"] * 60))
+                                        if "hour_from" in j
+                                        else "PT0M"
+                                    ),
+                                    (
+                                        ("PT%dM" % round(j["hour_to"] * 60))
+                                        if "hour_to" in j
+                                        else "PT1440M"
+                                    ),
                                 )
                                 priority_attendance += 1
                             dow = t.weekday()
@@ -761,9 +777,11 @@ class exporter(object):
                         quoteattr(
                             "%s%s"
                             % (
-                                ("%s/" % self.category_parent(tmpl["categ_id"][1]))
-                                if tmpl["categ_id"][1] in self.category_parent
-                                else "",
+                                (
+                                    ("%s/" % self.category_parent(tmpl["categ_id"][1]))
+                                    if tmpl["categ_id"][1] in self.category_parent
+                                    else ""
+                                ),
                                 tmpl["categ_id"][1],
                             )
                         ),
@@ -784,14 +802,18 @@ class exporter(object):
                                     sup[1],
                                     sup[2],
                                     sup[5],
-                                    ' effective_end="%sT00:00:00"'
-                                    % sup[3].strftime("%Y-%m-%d")
-                                    if sup[3]
-                                    else "",
-                                    ' effective_start="%sT00:00:00"'
-                                    % sup[4].strftime("%Y-%m-%d")
-                                    if sup[4]
-                                    else "",
+                                    (
+                                        ' effective_end="%sT00:00:00"'
+                                        % sup[3].strftime("%Y-%m-%d")
+                                        if sup[3]
+                                        else ""
+                                    ),
+                                    (
+                                        ' effective_start="%sT00:00:00"'
+                                        % sup[4].strftime("%Y-%m-%d")
+                                        if sup[4]
+                                        else ""
+                                    ),
                                     quoteattr(name),
                                 )
                             except Exception as e:
@@ -958,9 +980,9 @@ class exporter(object):
                         convertedQty,
                         quoteattr(product_buf["name"]),
                     )
-                    self.bom_producedQty[
-                        (operation, product_buf["name"])
-                    ] = convertedQty
+                    self.bom_producedQty[(operation, product_buf["name"])] = (
+                        convertedQty
+                    )
 
                     # Build consuming flows.
                     # If the same component is consumed multiple times in the same BOM
@@ -1007,9 +1029,11 @@ class exporter(object):
                             if not product:
                                 continue
                             yield '<flow xsi:type="%s" quantity="%f"><item name=%s/></flow>\n' % (
-                                "flow_fixed_end"
-                                if j["subproduct_type"] == "fixed"
-                                else "flow_end",
+                                (
+                                    "flow_fixed_end"
+                                    if j["subproduct_type"] == "fixed"
+                                    else "flow_end"
+                                ),
                                 self.convert_qty_uom(
                                     j["product_qty"],
                                     j["product_uom"][0],
@@ -1086,9 +1110,11 @@ class exporter(object):
                                     if not product:
                                         continue
                                     yield '<flow xsi:type="%s" quantity="%f"><item name=%s/></flow>\n' % (
-                                        "flow_fixed_end"
-                                        if j["subproduct_type"] == "fixed"
-                                        else "flow_end",
+                                        (
+                                            "flow_fixed_end"
+                                            if j["subproduct_type"] == "fixed"
+                                            else "flow_end"
+                                        ),
                                         self.convert_qty_uom(
                                             j["product_qty"],
                                             j["product_uom"][0],

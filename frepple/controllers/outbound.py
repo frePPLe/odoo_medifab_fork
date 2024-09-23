@@ -610,16 +610,21 @@ class exporter(object):
         self.map_workcenters = {}
         m = self.env["mrp.workcenter"]
         recs = m.search([])
-        fields = ["name", "capacity"]
+        fields = ["name", "capacity", "resource_calendar_id"]
         if recs:
             yield "<!-- workcenters -->\n"
             yield "<resources>\n"
             for i in recs.read(fields):
                 name = i["name"]
                 self.map_workcenters[i["id"]] = name
-                yield '<resource name=%s maximum="%s"><location name=%s/></resource>\n' % (
+                yield '<resource name=%s maximum="%s">%s<location name=%s/></resource>\n' % (
                     quoteattr(name),
                     i["capacity"],
+                    (
+                        "<available name=%s/>" % quoteattr(i["resource_calendar_id"][1])
+                        if i["resource_calendar_id"]
+                        else ""
+                    ),
                     quoteattr(self.mfg_location),
                 )
             yield "</resources>\n"

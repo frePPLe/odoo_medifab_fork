@@ -1665,8 +1665,15 @@ class exporter(object):
                 continue
 
             if location and item and i["product_qty"] > i["qty_received"]:
-                start = j["date_order"].strftime("%Y-%m-%dT%H:%M:%S")
-                end = i["date_planned"].strftime("%Y-%m-%dT%H:%M:%S")
+                start = str(
+                    timezone("UTC").localize(j["date_order"]).astimezone(timezone("NZ"))
+                ).replace(" ", "T")[:19]
+                end = str(
+                    timezone("UTC")
+                    .localize(i["date_planned"])
+                    .astimezone(timezone("NZ"))
+                ).replace(" ", "T")[:19]
+
                 qty = self.convert_qty_uom(
                     i["product_qty"] - i["qty_received"],
                     i["product_uom"][0],
@@ -1752,9 +1759,15 @@ class exporter(object):
                     origin = origin.split(", ")
                     origin = " ".join([j for j in origin if j.startswith("S")])
                 try:
-                    startdate = str(i["date_start"] or i["date_planned_start"]).replace(
-                        " ", "T"
-                    )
+                    startdate = str(
+                        timezone("UTC")
+                        .localize(i["date_start"])
+                        .astimezone(timezone("NZ"))
+                        if i["date_start"]
+                        else timezone("UTC")
+                        .localize(i["date_planned_start"])
+                        .astimezone(timezone("NZ"))
+                    ).replace(" ", "T")[:19]
                 except Exception:
                     continue
                 if not location or operation not in self.operations:

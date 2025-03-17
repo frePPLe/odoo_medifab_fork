@@ -908,8 +908,7 @@ class exporter(object):
             subproduct_fields = [
                 "product_id",
                 "product_qty",
-                "product_uom",
-                "subproduct_type",
+                "product_uom_id",
             ]
         except Exception:
             subproduct_model = None
@@ -1034,15 +1033,13 @@ class exporter(object):
                             if not product:
                                 continue
                             yield '<flow xsi:type="%s" quantity="%f"><item name=%s/></flow>\n' % (
-                                (
-                                    "flow_fixed_end"
-                                    if j["subproduct_type"] == "fixed"
-                                    else "flow_end"
-                                ),
+                                "flow_end",
                                 self.convert_qty_uom(
                                     j["product_qty"],
-                                    j["product_uom"][0],
-                                    j["product_id"][0],
+                                    j["product_uom_id"][0],
+                                    self.product_product[j["product_id"][0]][
+                                        "template"
+                                    ],
                                 ),
                                 quoteattr(product["name"]),
                             )
@@ -1115,14 +1112,10 @@ class exporter(object):
                                     if not product:
                                         continue
                                     yield '<flow xsi:type="%s" quantity="%f"><item name=%s/></flow>\n' % (
-                                        (
-                                            "flow_fixed_end"
-                                            if j["subproduct_type"] == "fixed"
-                                            else "flow_end"
-                                        ),
+                                        "flow_end",
                                         self.convert_qty_uom(
                                             j["product_qty"],
-                                            j["product_uom"][0],
+                                            j["product_uom_id"][0],
                                             self.product_product[j["product_id"][0]][
                                                 "template"
                                             ],

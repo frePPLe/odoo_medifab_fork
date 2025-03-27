@@ -1703,7 +1703,9 @@ class exporter(object):
         recs = m.search(
             [
                 ("state", "in", ["confirmed", "planned", "progress"]),
-                # ("origin", "=ilike", "%TRANS%"),
+                "|",
+                ("picking_type_id.name", "!=", "Assemble From Stock"),
+                ("picking_type_id.warehouse_id.name", "!=", "Rolleston 32"),
             ]
         )
         fields = [

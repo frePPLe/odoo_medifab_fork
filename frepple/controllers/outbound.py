@@ -2443,6 +2443,13 @@ class exporter(object):
         """
         now = datetime.now()
 
+        priority_dict = {
+            "0": "Not urgent",
+            "1": "Normal",
+            "2": "Urgent",
+            "3": "Very urgent",
+        }
+
         # Retrieve reserved quantities from stock moves
         if self.respect_reservations:
             # a first call to get all confirmed MO IDs
@@ -2451,7 +2458,12 @@ class exporter(object):
                 for i in self.generator.getData(
                     "mrp.production",
                     # Option 1: import only the odoo status from "confirmed" onwards
-                    search=[("state", "in", ["progress", "confirmed"])],
+                    search=[
+                        ("state", "in", ["progress", "confirmed"]),
+                        "|",
+                        ("picking_type_id.name", "!=", "Assemble From Stock"),
+                        ("picking_type_id.warehouse_id.name", "!=", "Rolleston 32"),
+                    ],
                     fields=["name"],
                 )
             ]
@@ -2484,6 +2496,20 @@ class exporter(object):
         ):
             # Filter out irrelevant manufacturing orders
             location = self.map_locations.get(i.location_dest_id.id, None)
+
+            if location not in [
+                "R32",
+                "R24",
+                "R24M",
+                "R24SP",
+            ]:
+                continue
+
+            origin = i.origin
+            if origin:
+                origin = origin.split(", ")
+                origin = " ".join([j for j in origin if j.startswith("S")])
+
             operation = i.name
             if not location and i.picking_type_id:
                 # For subcontracting MO we find the warehouse on the operation type
@@ -2504,13 +2530,19 @@ class exporter(object):
             # To reflect this flexibility we need a frepple operation specific
             # to each manufacturing order.
             try:
-                startdate = self.formatDateTime(
-                    i.date_start if i.date_start else i.date_planned_start
-                )
+                startdate = str(
+                    timezone("UTC").localize(i.date_start).astimezone(timezone("NZ"))
+                    if i.date_start
+                    else timezone("UTC")
+                    .localize(i.date_planned_start)
+                    .astimezone(timezone("NZ"))
+                ).replace(" ", "T")[:19]
             except Exception:
                 continue
             try:
-                enddate = self.formatDateTime(i.date_finished)
+                enddate = str(
+                    timezone("UTC").localize(i.date_finished).astimezone(timezone("NZ"))
+                )
             except Exception:
                 enddate = None
             qty = self.convert_qty_uom(
@@ -2531,8 +2563,10 @@ class exporter(object):
                 mto_mo = i._get_sources()
                 batch = mto_mo[0].display_name if mto_mo else i.name
 
+            batch = origin or ""
+
             # Create a record for the MO
-            yield '<operationplan type="MO" reference=%s batch=%s %s="%s" quantity="%s" status="%s">\n' % (
+            yield '<operationplan type="MO" reference=%s batch=%s %s="%s" quantity="%s" status="%s"><stringproperty name="urgency" value=%s/>\n' % (
                 quoteattr(i.name),
                 quoteattr(batch),
                 (
@@ -2549,6 +2583,7 @@ class exporter(object):
                     if self.manage_work_orders or i.state in ("confirmed", "draft")
                     else "confirmed"
                 ),
+                quoteattr(priority_dict.get(i.priority, "Normal")),
             )
 
             # Collect move info

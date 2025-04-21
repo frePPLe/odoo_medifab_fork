@@ -2489,7 +2489,12 @@ class exporter(object):
         for i in self.generator.getData(
             "mrp.production",
             # Option 1: import only the odoo status from "confirmed" onwards
-            search=[("state", "in", ["progress", "confirmed", "to_close"])],
+            search=[
+                ("state", "in", ["progress", "confirmed"]),
+                "|",
+                ("picking_type_id.name", "!=", "Assemble From Stock"),
+                ("picking_type_id.warehouse_id.name", "!=", "Rolleston 32"),
+            ],
             # Option 2: Also import draft manufacturing order from odoo (to avoid that frepple reproposes it another time)
             # search=[("state", "in", ["draft", "progress", "confirmed", "to_close"])],
             object=True,
@@ -2552,16 +2557,6 @@ class exporter(object):
             )
             if not qty:
                 continue
-
-            # Get MTO link
-            mto_so = (
-                i.procurement_group_id.mrp_production_ids.move_dest_ids.group_id.sale_id
-            )
-            if mto_so:
-                batch = mto_so[0].name
-            else:
-                mto_mo = i._get_sources()
-                batch = mto_mo[0].display_name if mto_mo else i.name
 
             batch = origin or ""
 
